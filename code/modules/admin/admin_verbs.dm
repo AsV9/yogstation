@@ -1016,37 +1016,52 @@ var/list/admin_verbs_hideable = list(
 	set name = "Pick Random Player"
 	set desc = "Picks a random logged-in player and brings up their player panel."
 
-
-	var/what_group = input(src, "What group would you like to pick from?", "Selection", "Everyone") as null|anything in list("Everyone", "Antags Only", "Non-Antags Only")
-	if (!what_group)
+	var/pick_antags = input(src, "Would you like to include antags?", "Selection", "Yes") as null|anything in list("Yes", "No", "Only pick antags")
+	if(!pick_antags)
 		return
-	var/choose_from_dead = input(src, "What group would you like to pick from?", "Selection", "Everyone") as null|anything in list("Everyone", "Living Only", "Dead Only")
-	if (!choose_from_dead)
+	var/pick_dead = input(src, "What group would you like to pick from?", "Selection", "Yes") as null|anything in list("Yes", "No", "Only pick dead")
+	if(!pick_dead)
 		return
 
-	var/list/player_pool = list()
-	for (var/mob/M in world)
-		if (!M.client || istype(M, /mob/new_player))
+	var/list/lottery_tickets = list()
+	for(var/mob/M in world)
+		if(!M.client || istype(M, /mob/new_player))
 			continue
-		if (what_group != "Everyone")
-			if ((what_group == "Antags Only") && !M.mind.special_role)
+		if(pick_antags == "Yes")
+			if(pick_dead == "Yes")
+				lottery_tickets += M
+			else if(pick_dead == "No" && M.stat != DEAD)
+				lottery_tickets += M
+			else if(pick_dead == "Only pick dead" && M.stat == DEAD)
+				lottery_tickets += M
+			else
 				continue
-			else if ((what_group == "Non-Antags Only") && M.mind.special_role)
+		else if(pick_antags == "No")
+			if(pick_dead == "Yes")
+				lottery_tickets += M
+			else if(pick_dead == "No" && M.stat != DEAD)
+				lottery_tickets += M
+			else if(pick_dead == "Only pick dead" && M.stat == DEAD)
+				lottery_tickets += M
+			else
 				continue
-		if (choose_from_dead != "Everyone")
-			if ((choose_from_dead == "Living Only") && M.stat == DEAD)
+		else if(pick_antags == "Only pick antags")
+			if(pick_dead == "Yes")
+				lottery_tickets += M
+			else if(pick_dead == "No" && M.stat != DEAD)
+				lottery_tickets += M
+			else if(pick_dead == "Only pick dead" && M.stat == DEAD)
+				lottery_tickets += M
+			else
 				continue
-			else if ((choose_from_dead == "Dead Only") && M.stat != DEAD)
-				continue
-		player_pool += M
 
-	if (!player_pool.len)
+	if(!lottery_tickets.len)
 		to_chat(src, "<span style=\"color:red\">Error: no valid mobs found via selected options.</span>")
 		return
 
-	var/chosen_player = pick(player_pool)
-	to_chat(src, "[chosen_player] has been chosen")
-	holder.show_player_panel(chosen_player)
+	var/lottery_winner = pick(lottery_tickets) //find that prize money winner
+	to_chat(src, "[lottery_winner] has been chosen")
+	holder.show_player_panel(lottery_winner)
 
 /client/proc/remove_all_vines()
 	set category = "Admin"
